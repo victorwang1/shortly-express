@@ -17,17 +17,17 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 
 
-app.get('/', 
+app.get('/',
 (req, res) => {
   res.render('index');
 });
 
-app.get('/create', 
+app.get('/create',
 (req, res) => {
   res.render('index');
 });
 
-app.get('/links', 
+app.get('/links',
 (req, res, next) => {
   models.Links.getAll()
     .then(links => {
@@ -38,7 +38,7 @@ app.get('/links',
     });
 });
 
-app.post('/links', 
+app.post('/links',
 (req, res, next) => {
   var url = req.body.url;
   if (!models.Links.isValidUrl(url)) {
@@ -72,6 +72,53 @@ app.post('/links',
     .catch(link => {
       res.status(200).send(link);
     });
+});
+
+app.get('/login',
+(req, res) => {
+  res.render('login');
+});
+
+app.post('/login',
+(req, res, next) => {
+  // check if user exists
+    // if yes ->
+        // check if username and password pair are valid
+          // redirect to index
+    // if no ->
+        // redirect to signup page
+  var username = req.body.username;
+  var password = req.body.password;
+  models.Users.get({username: username})
+              .then(({pw, salt}) => {
+                if (models.Users.compare(password, pw, salt)) {
+                  res.redirect('/');
+                } else {
+                  res.redirect('/signup');
+                }
+              })
+              .error((err) => {
+                res.redirect('/signup');
+              })
+});
+
+app.get('/signup',
+(req, res) => {
+  res.render('signup');
+});
+
+app.post('/signup',
+(req, res) => {
+  var username = req.body.username;
+  var password = req.body.password;
+  models.Users.create({username, password})
+              .then((newUser) => {
+                return newUser;
+              })
+              .catch((err) => {
+                console.log(err);
+              });
+  res.redirect('/');
 });
 
 /************************************************************/
