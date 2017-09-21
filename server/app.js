@@ -4,12 +4,16 @@ const utils = require('./lib/hashUtils');
 const partials = require('express-partials');
 const bodyParser = require('body-parser');
 const Auth = require('./middleware/auth');
+const cookieParser = require('./middleware/cookieParser');
 const models = require('./models');
 
 const app = express();
 
 app.set('views', `${__dirname}/views`);
 app.set('view engine', 'ejs');
+//cookies
+//app.use(cookieParser);
+//app.use(Auth);
 app.use(partials());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -88,17 +92,18 @@ app.post('/login',
     // if no ->
         // redirect to signup page
   var username = req.body.username;
-  var password = req.body.password;
+  var pw = req.body.password;
+
   models.Users.get({username: username})
-              .then(({pw, salt}) => {
-                if (models.Users.compare(password, pw, salt)) {
+              .then(({password, salt}) => {
+                if (models.Users.compare(pw, password, salt)) {
                   res.redirect('/');
                 } else {
-                  res.redirect('/signup');
+                  res.redirect('/login');
                 }
               })
-              .error((err) => {
-                res.redirect('/signup');
+              .catch((err) => {
+                res.redirect('/login');
               })
 });
 
@@ -111,14 +116,20 @@ app.post('/signup',
 (req, res) => {
   var username = req.body.username;
   var password = req.body.password;
-  models.Users.create({username, password})
-              .then((newUser) => {
-                return newUser;
+  models.Users.get({username: username})
+              .then((user) => {
+                if (user) throw user;
+                return models.Users.create({username, password});
               })
-              .catch((err) => {
+              .then(() => {
+                return res.redirect('/');
+              })
+              .error((err) => {
                 console.log(err);
+              })
+              .catch((user) => {
+                res.redirect('/signup');
               });
-  res.redirect('/');
 });
 
 /************************************************************/
